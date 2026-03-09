@@ -1,0 +1,81 @@
+name: Global Terraform Drift Detection
+
+on:
+  #schedule:
+    # Run every day at midnight UTC
+    # You can adjust this schedule as needed (e.g., weekly, multiple times a day)
+    #- cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+permissions:
+  contents: read  # Required to checkout the code
+  id-token: write # Required for aws-actions/configure-aws-credentials with OIDC
+
+jobs:
+  check_drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.1 # Ensure this matches your global/main.tf required_version
+
+      - name: Configure AWS credentials (Global)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # The region where your global state bucket is located
+
+      - name: Terraform Init (Global)
+        run: terraform init -reconfigure
+        working-directory: terraform/global
+
+      - name: Terraform Plan - Detailed Exitcode (Global)
+        id: plan_drift # Assign an ID to this step to reference its output
+        run: |
+          # The '-detailed-exitcode' flag returns:
+          # 0 = No changes
+          # 1 = Error
+          # 2 = Changes detected
+          terraform plan -no-color -detailed-exitcode
+        working-directory: terraform/global
+        # Continue on error: We want the workflow to continue even if changes are detected (exit code 2)
+        # or if there's a Terraform error (exit code 1) so we can report it.
+        continue-on-error: true
+
+      - name: Report Drift
+        # This step runs if the plan succeeded and detected changes (exit code 2)
+        if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '2'
+        run: |
+          echo "⚠️ GLOBAL DRIFT DETECTED! ⚠️"
+          echo "Terraform plan indicates changes between your code/state and the live AWS global infrastructure."
+          echo "Please review the full 'Terraform Plan - Detailed Exitcode' step output above for details."
+          
+          # Optional: Add a notification here (e.g., Slack, Microsoft Teams, Jira Integration)
+          # Example for Slack (requires a Slack webhook URL in your GitHub secrets):
+          # curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 Terraform Global Drift Detected in AWS Account! Workflow: ${{ github.workflow }} Run: ${{ github.run_id }} 🚨"}' "${{ secrets.SLACK_WEBHOOK_URL }}"
+          
+          exit 1 # Fail the GitHub Actions job to clearly indicate drift
+
+      - name: No Drift Detected
+        # This step runs if the plan succeeded and found no changes (exit code 0)
+        if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '0'
+        run: |
+          echo "✅ No drift detected in global Terraform state."
+
+      - name: Terraform Plan Error
+        # This step runs if the plan failed (exit code 1)
+        if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '1'
+        run: |
+          echo "❌ An error occurred during Terraform plan for global resources. Please check the logs."
+          exit 1 # Fail the GitHub Actions job
+
+      # Note: If 'continue-on-error: true' is removed from the plan step,
+      # and the plan step fails (e.g., syntax error), the outcome will be 'failure'.
+      # You can add a step to catch `steps.plan_drift.outcome == 'failure'`
+      # for more specific error reporting if needed.

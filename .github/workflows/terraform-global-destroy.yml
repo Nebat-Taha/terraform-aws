@@ -1,0 +1,69 @@
+name: Global Terraform Destroy
+
+on:
+  # This workflow should typically NOT be triggered automatically on push.
+  # Manual triggering (workflow_dispatch) with a confirmation prompt is highly recommended for destroy operations.
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "destroy" to confirm global infrastructure destruction.'
+        required: true
+        default: ''
+
+permissions:
+  contents: read # Required to checkout the code
+  id-token: write # Required for aws-actions/configure-aws-credentials with OIDC
+
+jobs:
+  destroy_global:
+    runs-on: ubuntu-latest
+    #environment:
+      # Optional: Use a GitHub Environment for destroy operations.
+      # This allows you to add manual approval gates and secret management specific to destroy.
+      # You'd configure this environment in your GitHub repository settings.
+      # name: production-destroy # Example name, rename as needed
+      # url: https://github.com/${{ github.repository }}/settings/environments/your-destroy-env-id
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.1 # Ensure this matches your global/main.tf required_version
+
+      - name: Configure AWS credentials (Global)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # The region where your global state bucket is located
+
+      # Safety Check: Require explicit confirmation for destroy
+      - name: Check for destroy confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "destroy" ]; then
+            echo "::error::Destroy not confirmed. Please type 'destroy' in the input field to proceed."
+            exit 1
+          fi
+        # This step should run even if previous steps fail to ensure confirmation is always checked
+        if: always()
+
+      - name: Terraform Init (Global)
+        run: terraform init -reconfigure
+        working-directory: terraform/global
+
+      - name: Terraform Plan (Global - Destroy)
+        # Run a destroy plan first to see what will be deleted
+        run: |
+          terraform plan -destroy -no-color \
+            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
+        working-directory: terraform/global
+
+      - name: Terraform Destroy (Global)
+        # ONLY PROCEED IF THE CONFIRMATION PASSED
+        run: |
+          terraform destroy -auto-approve \
+            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
+        working-directory: terraform/global

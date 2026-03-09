@@ -1,0 +1,79 @@
+name: Terraform Drift Detection
+
+on:
+   workflow_dispatch:
+#on:
+  #schedule:
+    # Runs every day at 00:00 UTC. Adjust as needed.
+    # For example, '0 0 * * 1' would run every Monday at midnight UTC.
+    #- cron: '0 0 * * *'
+  #workflow_dispatch: # Allows manual triggering for testing and immediate checks
+permissions:
+  contents: read
+  id-token: write
+
+
+jobs:
+  check_drift:
+    runs-on: ubuntu-latest
+      
+    strategy:
+      matrix:
+        # Define the regions you want to check for drift
+        region:
+          - us-east-1
+          - ap-southeast-2
+          - eu-central-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.1
+
+      - name: Configure AWS credentials for ${{ matrix.region }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.region }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform/regions/${{ matrix.region }}
+
+      - name: Terraform Plan for Drift Detection
+        id: plan_drift
+        # -detailed-exitcode will exit with 0 (no changes), 1 (error), or 2 (changes detected)
+        # -no-color for cleaner log output
+        run: terraform plan -detailed-exitcode -no-color
+        working-directory: ./terraform/regions/${{ matrix.region }}
+        # Crucial: continue-on-error allows the job to proceed even if exit code is 2 (drift detected)
+        continue-on-error: true
+
+      - name: Report Drift
+        # This step runs if the plan succeeded and detected changes (exit code 2)
+        if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '2'
+        run: |
+          echo "🚨 DRIFT DETECTED IN REGION: ${{ matrix.region }} 🚨"
+          echo "Terraform plan indicates changes between your code/state and the live infrastructure."
+          echo "Please review the full 'Terraform Plan for Drift Detection' step output above for details."
+          echo "This job will fail to draw attention to the drift."
+          exit 1 # Fail the GitHub Actions job to clearly indicate drift
+
+      - name: No Drift Detected
+        # This step runs if the plan succeeded and found no changes (exit code 0)
+        if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '0'
+        run: |
+            echo "✅ No drift detected in region: ${{ matrix.region }}"
+
+      - name: Terraform Plan Failed (Error)
+        # This step runs if terraform plan itself encountered an error (exit code 1)
+        if: steps.plan_drift.outcome == 'failure'
+        run: |
+          echo "❌ Terraform plan failed for region ${{ matrix.region }}. This indicates a configuration or authentication error, not necessarily drift."
+          echo "Please investigate the 'Terraform Plan for Drift Detection' step for error messages."
+          exit 1 # Fail the job as an actual error occurred

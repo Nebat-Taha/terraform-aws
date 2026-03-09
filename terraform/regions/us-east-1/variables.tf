@@ -1,0 +1,65 @@
+variable "aws_region" {
+  description = "The AWS region to deploy resources into."
+  type        = string
+}
+
+variable "regional_key_pair" {
+  description = "Configuration for the key pair in this specific region."
+  type = object({
+    key_name   = string
+    public_key = string
+  })
+}
+
+# ... (Your existing variables, e.g., aws_region, regional_key_pair map) ...
+
+variable "ec2_ami_id" {
+  description = "The AMI ID for the EC2 instance (e.g., Amazon Linux 2 AMI for t2.micro)."
+  type        = string
+}
+
+variable "ec2_instance_type" {
+  description = "The instance type for the EC2 instance."
+  type        = string
+  default     = "t2.micro" # Setting a default here is convenient
+}
+
+variable "environment" {
+  description = "The environment name (e.g., dev, prod, test)."
+  type        = string
+  default     = "dev"
+}
+
+# ... (existing variables: aws_region, regional_key_pair, ec2_ami_id, ec2_instance_type, environment) ...
+
+variable "vpc_cidr_block" {
+  description = "The CIDR block for the main VPC."
+  type        = string
+  default     = "10.0.0.0/16" # Example
+}
+
+variable "app_subnet_cidr_block" {
+  description = "The CIDR block for the application subnet."
+  type        = string
+  default     = "10.0.1.0/24" # Example
+}
+
+variable "db_subnet_cidr_block" {
+  description = "The CIDR block for the database subnet."
+  type        = string
+  default     = "10.0.2.0/24" # Example
+}
+
+variable "az_suffix" {
+  description = "The availability zone suffix (e.g., 'a' for us-east-1a)."
+  type        = string
+  default     = "a"
+}
+
+variable "allowed_ssh_cidr_blocks" {
+  description = "A list of CIDR blocks that are allowed to SSH into instances."
+  type        = list(string)
+  # IMPORTANT: Replace "YOUR_PUBLIC_IP_HERE/32" with your actual public IP address
+  # or remove this default and set it in terraform.tfvars for production.
+  default = ["0.0.0.0/0"] # WARNING: Wide open! Restrict this to your actual IP!
+}
