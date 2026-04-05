@@ -102,15 +102,15 @@ module "dev_user" {
 
 # outpts for api_key 
 # This output is only for demonstration. Do not output sensitive data in a real project.
-output "example_api_key_secret_arn" {
-  value       = module.my_example_api_key.secret_arn
-  description = "The ARN of the example API key secret."
-}
+#output "example_api_key_secret_arn" {
+#value       = module.my_example_api_key.secret_arn
+#description = "The ARN of the example API key secret."
+#}
 # Output for the  API_key with a dummy initial value
-output "manual_api_key_secret_arn" {
-  value       = module.my_manual_api_key.secret_arn
-  description = "The ARN of the manually managed API key secret."
-}
+#output "manual_api_key_secret_arn" {
+#value       = module.my_manual_api_key.secret_arn
+#description = "The ARN of the manually managed API key secret."
+#}
 
 # Outputs for user credentials.
 # These are marked sensitive and should be handled with extreme care!
