@@ -85,7 +85,6 @@ jobs:
       - name: Terraform Plan
         # We output to a file 'tfplan' to ensure the 'Apply' stage uses this exact result
         run: terraform plan -input=false -out=tfplan
-        working-directory: ./terraform
 
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
