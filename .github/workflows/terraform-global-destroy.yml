@@ -57,12 +57,12 @@ jobs:
         # Run a destroy plan first to see what will be deleted
         run: |
           terraform plan -destroy -no-color \
-            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
+        #-var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
         working-directory: terraform/global
 
       - name: Terraform Destroy (Global)
         # ONLY PROCEED IF THE CONFIRMATION PASSED
         run: |
           terraform destroy -auto-approve \
-            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
+        #-var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
         working-directory: terraform/global
