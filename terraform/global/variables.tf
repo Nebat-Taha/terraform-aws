@@ -5,11 +5,11 @@ variable "environment" {
 }
 
 # define the example_api_key_value variable
-variable "example_api_key_value" {
-  description = "The actual value of the example API key, injected via CI/CD."
-  type        = string
-  sensitive   = true # Marks the variable as sensitive
-}
+#variable "example_api_key_value" {
+# description = "The actual value of the example API key, injected via CI/CD."
+#type        = string
+#sensitive   = true # Marks the variable as sensitive
+#}
 
 variable "region" {
   description = "The AWS region for global resources (e.g., us-east-1)."

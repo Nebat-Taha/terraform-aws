@@ -17,13 +17,13 @@ provider "aws" {
 }
 
 # Create the Secret Manager resource AND populate it with the initial value
-module "my_example_api_key" {
-  source             = "../modules/secretsmanager"
-  secret_name        = "${var.environment}-MyApiKey"
-  secret_description = "API Key for My App. Value populated via CI/CD."
-  environment        = var.environment
-  secret_value       = var.example_api_key_value # Pass the sensitive value here
-}
+#module "my_example_api_key" {
+#source             = "../modules/secretsmanager"
+#secret_name        = "${var.environment}-MyApiKey"
+#secret_description = "API Key for My App. Value populated via CI/CD."
+#environment        = var.environment
+#secret_value       = var.example_api_key_value # Pass the sensitive value here
+#}
 
 #Create a second API Key with a dummy initial value for manual management
 module "my_manual_api_key" {
