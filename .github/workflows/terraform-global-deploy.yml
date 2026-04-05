@@ -41,6 +41,9 @@ jobs:
   terraform_plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform/global # Set globally for the job
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,18 +61,15 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -reconfigure
-        working-directory: ./terraform
 
       - name: Terraform Validate (Global)
         run: terraform validate
-        working-directory: terraform/global
 
       - name: Run TFLint (Global)
         uses: terraform-linters/setup-tflint@v3
         with:
           tflint_version: v0.50.0 # Match your desired TFLint version
       - run: tflint --recursive --format compact
-        working-directory: terraform/global
 
         #- name: Run TFSEC Scan (Global)
       #uses: aquasecurity/tfsec-action@v1.0.6 # Use the working version you found
@@ -90,8 +90,8 @@ jobs:
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan
-          path: terraform/tfplan
+          name: tfplan-global
+          path: terraform/global/tfplan
 
   # --- JOB 2: APPLY ---
   terraform_apply:
@@ -99,6 +99,9 @@ jobs:
     needs: terraform_plan
     runs-on: ubuntu-latest
     environment: test # Requires manual approval in GitHub Settings, change to test
+    defaults:
+      run:
+        working-directory: ./terraform/global
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,13 +121,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
-          path: terraform/
+          path: terraform/global
 
       - name: Terraform Init
         run: terraform init -reconfigure
-        working-directory: ./terraform
 
       - name: Terraform Apply # TODO : versioning of artifact and how it works
         # Apply specifically the binary 'tfplan' artifact downloaded above
         run: terraform apply -auto-approve tfplan
-        working-directory: ./terraform
