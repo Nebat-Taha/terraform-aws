@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "nebat" # Replace with your bucket name
+    bucket         = "nebatn" # Replace with your bucket name
     key            = "regional-terraform-state/us-east-1/terraform.tfstate"
     region         = "us-east-1" # Replace with your preferred region
     encrypt        = true

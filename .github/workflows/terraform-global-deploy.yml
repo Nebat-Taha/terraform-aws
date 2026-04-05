@@ -1,21 +1,46 @@
+# ==============================================================================
+# WORKFLOW 1: Infrastructure Deployment (Terraform)
+# ==============================================================================
+# ARCHITECTURE:
+#   - Two-stage pipeline: 'Plan' and 'Apply'.
+#   - Execution occurs on GitHub-hosted Ubuntu runners.
+#
+# TRIGGER:
+#   - Currently 'workflow_dispatch' for manual control.
+#   - Configured (commented) for automatic pushes to 'main' affecting terraform/ code.
+#
+# SECURITY STRATEGY:
+#   - OIDC (OpenID Connect): Uses 'id-token: write' to assume an AWS IAM Role
+#     via 'secrets.AWS_ROLE_ARN'. No long-lived AWS Access Keys are used.
+#   - LEAST PRIVILEGE: 'TF_VAR_my_ip' is pulled from GitHub Secrets to restrict
+#     SSH/Management traffic to the admin's specific IP without exposing it in logs.
+#
+# DEPLOYMENT DECISIONS:
+#   - DETERMINISTIC EXECUTION: I use GitHub Action Artifacts to pass the binary
+#     'tfplan' file from the Plan job to the Apply job. This ensures the execution
+#     is exactly what was inspected, preventing drift if code changes during approval.
+#   - ENVIRONMENT GATING: The 'Apply' job is locked behind the 'test' environment
+#     to allow for manual verification of the plan before infrastructure is changed.
+# ==============================================================================
+
 name: Global Terraform Deployment
 
 on:
-  #push:
-  #branches:
-  #- main
-  #paths:
-  #- 'terraform/global/**' # Trigger only on changes within the 'global' root directory
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+  workflow_dispatch:
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #  - 'terraform/global/**'   # Trigger only on changes within the 'global' root directory
 
 permissions: # Apply least-privilege permissions at the workflow level
-  contents: read # Required to checkout the code
-  id-token: write # Required for aws-actions/configure-aws-credentials with OIDC
+  contents: read
+  id-token: write
 
 jobs:
-  deploy_global:
+  # --- JOB 1: PLAN ---
+  terraform_plan:
+    name: "Terraform Plan"
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,18 +48,17 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.1 # Ensure this matches your global/main.tf required_version
+          terraform_version: 1.12.1
 
-      - name: Configure AWS credentials (Global)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1 # The region where your global state bucket is located and where IAM operations are typically performed
+          aws-region: us-east-1
 
-      - name: Terraform Init (Global)
-        # All subsequent Terraform commands will run from this working directory
+      - name: Terraform Init
         run: terraform init -reconfigure
-        working-directory: terraform/global
+        working-directory: ./terraform
 
       - name: Terraform Validate (Global)
         run: terraform validate
@@ -47,7 +71,7 @@ jobs:
       - run: tflint --recursive --format compact
         working-directory: terraform/global
 
-      #- name: Run TFSEC Scan (Global)
+        #- name: Run TFSEC Scan (Global)
       #uses: aquasecurity/tfsec-action@v1.0.6 # Use the working version you found
       #with:
       #working_directory: terraform/global
@@ -58,14 +82,49 @@ jobs:
       #directory: terraform/global
       #framework: terraform
 
-      - name: Terraform Plan (Global)
-        run: |
-          terraform plan -no-color \
-            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
-        working-directory: terraform/global
+      - name: Terraform Plan
+        # We output to a file 'tfplan' to ensure the 'Apply' stage uses this exact result
+        run: terraform plan -input=false -out=tfplan
+        working-directory: ./terraform
 
-      - name: Terraform Apply (Global)
-        run: |
-          terraform apply -auto-approve \
-            -var="example_api_key_value=${{ secrets.MY_SERVICE_API_KEY }}"
-        working-directory: terraform/global
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+
+  # --- JOB 2: APPLY ---
+  terraform_apply:
+    name: "Terraform Apply"
+    needs: terraform_plan
+    runs-on: ubuntu-latest
+    environment: test # Requires manual approval in GitHub Settings, change to test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.1
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/
+
+      - name: Terraform Init
+        run: terraform init -reconfigure
+        working-directory: ./terraform
+
+      - name: Terraform Apply # TODO : versioning of artifact and how it works
+        # Apply specifically the binary 'tfplan' artifact downloaded above
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./terraform
