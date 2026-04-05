@@ -31,8 +31,8 @@ jobs:
     defaults:
       run:
         working-directory: ./terraform/regions/${{ matrix.region }}
-    env:
-      TF_LOG: TRACE
+    #env:
+    #TF_LOG: TRACE
 
     steps:
       - name: Checkout code
@@ -101,7 +101,7 @@ jobs:
     name: "Apply: ${{ matrix.region }}"
     needs: terraform_plan
     runs-on: ubuntu-latest
-    environment: test # <--- THIS IS THE HUMAN GATE
+    environment: test-${{ matrix.region }} # <--- THIS IS THE HUMAN GATE
     strategy:
       matrix:
         region: [us-east-1, ap-southeast-2, eu-central-1]

@@ -97,7 +97,7 @@ jobs:
     name: "Terraform Apply"
     needs: terraform_plan
     runs-on: ubuntu-latest
-    environment: test # Requires manual approval in GitHub Settings, change to test
+    environment: test-global # Requires manual approval in GitHub Settings, change to test
     defaults:
       run:
         working-directory: ./terraform/global
