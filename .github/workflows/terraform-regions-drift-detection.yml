@@ -1,22 +1,21 @@
 name: Terraform Drift Detection
 
 on:
-   workflow_dispatch:
+  workflow_dispatch:
 #on:
-  #schedule:
-    # Runs every day at 00:00 UTC. Adjust as needed.
-    # For example, '0 0 * * 1' would run every Monday at midnight UTC.
-    #- cron: '0 0 * * *'
-  #workflow_dispatch: # Allows manual triggering for testing and immediate checks
+#schedule:
+# Runs every day at 00:00 UTC. Adjust as needed.
+# For example, '0 0 * * 1' would run every Monday at midnight UTC.
+#- cron: '0 0 * * *'
+#workflow_dispatch: # Allows manual triggering for testing and immediate checks
 permissions:
   contents: read
   id-token: write
 
-
 jobs:
   check_drift:
     runs-on: ubuntu-latest
-      
+
     strategy:
       matrix:
         # Define the regions you want to check for drift
@@ -37,8 +36,7 @@ jobs:
       - name: Configure AWS credentials for ${{ matrix.region }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ matrix.region }}
 
       - name: Terraform Init
@@ -68,7 +66,7 @@ jobs:
         # This step runs if the plan succeeded and found no changes (exit code 0)
         if: steps.plan_drift.outcome == 'success' && steps.plan_drift.outputs.exitcode == '0'
         run: |
-            echo "✅ No drift detected in region: ${{ matrix.region }}"
+          echo "✅ No drift detected in region: ${{ matrix.region }}"
 
       - name: Terraform Plan Failed (Error)
         # This step runs if terraform plan itself encountered an error (exit code 1)

@@ -8,7 +8,7 @@ on:
       confirm_destroy:
         description: 'Type "destroy" to confirm global infrastructure destruction.'
         required: true
-        default: ''
+        default: ""
 
 permissions:
   contents: read # Required to checkout the code
@@ -18,11 +18,11 @@ jobs:
   destroy_global:
     runs-on: ubuntu-latest
     #environment:
-      # Optional: Use a GitHub Environment for destroy operations.
-      # This allows you to add manual approval gates and secret management specific to destroy.
-      # You'd configure this environment in your GitHub repository settings.
-      # name: production-destroy # Example name, rename as needed
-      # url: https://github.com/${{ github.repository }}/settings/environments/your-destroy-env-id
+    # Optional: Use a GitHub Environment for destroy operations.
+    # This allows you to add manual approval gates and secret management specific to destroy.
+    # You'd configure this environment in your GitHub repository settings.
+    # name: production-destroy # Example name, rename as needed
+    # url: https://github.com/${{ github.repository }}/settings/environments/your-destroy-env-id
 
     steps:
       - name: Checkout code
@@ -36,8 +36,7 @@ jobs:
       - name: Configure AWS credentials (Global)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1 # The region where your global state bucket is located
 
       # Safety Check: Require explicit confirmation for destroy

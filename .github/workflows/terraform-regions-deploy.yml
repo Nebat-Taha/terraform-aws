@@ -44,8 +44,7 @@ jobs:
       - name: Configure AWS credentials for ${{ matrix.region }}
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ matrix.region }} # Use the region from the matrix
 
       - name: Terraform init -reconfigure for ${{ matrix.region }}
@@ -116,8 +115,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-region: ${{ matrix.region }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
 
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4

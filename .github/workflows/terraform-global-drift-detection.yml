@@ -2,13 +2,13 @@ name: Global Terraform Drift Detection
 
 on:
   #schedule:
-    # Run every day at midnight UTC
-    # You can adjust this schedule as needed (e.g., weekly, multiple times a day)
-    #- cron: '0 0 * * *'
+  # Run every day at midnight UTC
+  # You can adjust this schedule as needed (e.g., weekly, multiple times a day)
+  #- cron: '0 0 * * *'
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
 permissions:
-  contents: read  # Required to checkout the code
+  contents: read # Required to checkout the code
   id-token: write # Required for aws-actions/configure-aws-credentials with OIDC
 
 jobs:
@@ -27,8 +27,7 @@ jobs:
       - name: Configure AWS credentials (Global)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1 # The region where your global state bucket is located
 
       - name: Terraform Init (Global)
@@ -55,11 +54,11 @@ jobs:
           echo "⚠️ GLOBAL DRIFT DETECTED! ⚠️"
           echo "Terraform plan indicates changes between your code/state and the live AWS global infrastructure."
           echo "Please review the full 'Terraform Plan - Detailed Exitcode' step output above for details."
-          
+
           # Optional: Add a notification here (e.g., Slack, Microsoft Teams, Jira Integration)
           # Example for Slack (requires a Slack webhook URL in your GitHub secrets):
           # curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 Terraform Global Drift Detected in AWS Account! Workflow: ${{ github.workflow }} Run: ${{ github.run_id }} 🚨"}' "${{ secrets.SLACK_WEBHOOK_URL }}"
-          
+
           exit 1 # Fail the GitHub Actions job to clearly indicate drift
 
       - name: No Drift Detected

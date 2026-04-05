@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       region:
-        description: 'AWS Region to destroy resources in (e.g., us-east-1, ap-southeast-2, eu-central-1)'
+        description: "AWS Region to destroy resources in (e.g., us-east-1, ap-southeast-2, eu-central-1)"
         required: true
         type: choice
         options:
@@ -19,7 +19,7 @@ on:
         type: string
 
 permissions: # Apply least-privilege permissions at the workflow level
-  contents: read  # Required to checkout the code
+  contents: read # Required to checkout the code
   id-token: write # Required for aws-actions/configure-aws-credentials with OIDC
 
 jobs:
@@ -40,8 +40,7 @@ jobs:
       - name: Configure AWS credentials for ${{ github.event.inputs.region }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ github.event.inputs.region }}
 
       - name: Terraform Init -reconfigure for ${{ github.event.inputs.region }}
