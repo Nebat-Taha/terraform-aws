@@ -39,28 +39,29 @@ Shared components → terraform/modules/
 ## Repository structure
 
 ```text
-.github/workflows/
-  oidc-test.yml
-  terraform-global-deploy.yml
-  terraform-global-destroy.yml
-  terraform-global-drift-detection.yml
-  terraform-regions-deploy.yml
-  terraform-regions-destroy.yml
-  terraform-regions-drift-detection.yml
-terraform/
-  global/                 # Account-level IAM and Secrets Manager examples
-  regions/
-    us-east-1/            # Network, security, key pair, EC2
-    eu-central-1/         # Network, security, key pair
-    ap-southeast-2/       # Network, security, key pair
-  modules/
-    ec2/
-    iam_policy/
-    iam_user/
-    keypair/
-    network/
-    secretsmanager/
-    security_group/
+ │
+ ├──.github/workflows/
+ │   ├──oidc-test.yml
+ │   ├──terraform-global-deploy.yml
+ │   ├──terraform-global-destroy.yml
+ │   ├──terraform-global-drift-detection.yml
+ │   ├──terraform-regions-deploy.yml
+ │   ├──terraform-regions-destroy.yml
+ │   └── terraform-regions-drift-detection.yml
+ ├──terraform/
+ │   ├──global/                 
+ │   └──regions/
+ │       ├──us-east-1/            
+ │       ├──eu-central-1/         
+ │       └──ap-southeast-2/       
+ └── modules/
+      ├──ec2/
+      ├──iam_policy/
+      ├──iam_user/
+      ├──keypair/
+      ├──network/
+      ├──secretsmanager/
+      └──security_group/
 ```
 
 ## Deployment workflow
