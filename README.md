@@ -105,11 +105,6 @@ The drift workflows run Terraform plans and show their output directly in GitHub
 
 **Current drift-reporting detail:** The workflow uses `terraform plan -detailed-exitcode` with `continue-on-error: true`, but later steps test `steps.plan_drift.outputs.exitcode`, which the plan step does not set. The reporting conditions therefore do not reliably distinguish exit codes 0, 1, and 2. Capture the exit code explicitly if separate *drift detected*, *no change*, and *plan error* messages are desired. The Terraform plan output remains available in the workflow log.
 
-## Implementation follow-ups
-
-- Align the global plan artifact upload/download names (`tfplan-global` versus `tfplan`) so the saved plan can be applied.
-- Capture and evaluate drift-check exit codes explicitly to make the existing GitHub Actions status messages accurate.
-- Re-enable the tested tfsec and Checkov steps, keeping soft-fail behavior optional rather than the default enforcement mode.
 
 ## Scope
 
