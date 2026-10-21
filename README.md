@@ -106,10 +106,6 @@ The drift workflows run Terraform plans and show their output directly in GitHub
 **Current drift-reporting detail:** The workflow uses `terraform plan -detailed-exitcode` with `continue-on-error: true`, but later steps test `steps.plan_drift.outputs.exitcode`, which the plan step does not set. The reporting conditions therefore do not reliably distinguish exit codes 0, 1, and 2. Capture the exit code explicitly if separate *drift detected*, *no change*, and *plan error* messages are desired. The Terraform plan output remains available in the workflow log.
 
 
-## Scope
-
-This standalone repository demonstrates infrastructure provisioning and lifecycle automation across multiple AWS regions. Regional resource sets intentionally differ according to their configuration; matching compute deployments in every region are not a goal in themselves. It does **not** currently implement multi-region traffic routing, cross-region replication, disaster-recovery orchestration, or automatic failover.
-
 ## Related architecture studies
 
 Broader application, data, and resilience trade-offs are documented separately to keep this README focused on the Terraform implementation:
