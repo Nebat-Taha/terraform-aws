@@ -34,6 +34,7 @@ Shared components → terraform/modules/
 | **Controlled deployment** | Separate plan and apply jobs save and download plan artifacts. Apply jobs reference GitHub Environments (`test-global` and `test-<region>`) that can enforce reviewer approval when configured in repository settings. |
 | **Regional planning and approvals** | A matrix generates plans for all three regions; `fail-fast: false` allows other plan jobs to finish if one fails. The apply stage depends on the complete plan matrix, and each regional apply job uses its own GitHub Environment approval gate, supporting region-specific reviewers and approval history when protection rules are configured. |
 | **Configurable workflow triggers** | Deployment workflows currently support manual dispatch and include commented push-to-`main` triggers for optional automation. Destroy workflows are manually triggered and require the exact confirmation text `destroy`; drift workflows support manual checks and have commented scheduled triggers. |
+| **Terraform drift**| checks run through GitHub Actions, with support for manual execution and optional scheduling. Detected changes are reported in the workflow logs and intentionally marked as workflow failures to leverage GitHub's native failure notifications.|
 
 ## Repository structure
 
