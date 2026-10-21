@@ -22,8 +22,6 @@ Each root → separate S3 Terraform state object + DynamoDB locking table
 Shared components → terraform/modules/
 ```
 
-The network module creates a VPC with DNS enabled, an internet gateway, a public application subnet associated with an internet-facing route table, and a separate database subnet without an explicit public route-table association. Both subnets currently use one configured availability zone per region. The database subnet is a network building block; no database instance is provisioned.
-
 ## Engineering decisions
 
 | Decision | Implementation and rationale |
