@@ -88,7 +88,18 @@ terraform show tfplan
 terraform apply tfplan
 ```
 
-To target another region, change the working directory to `terraform/regions/eu-central-1` or `terraform/regions/ap-southeast-2`. Configure the backend bucket/key, regional CIDRs, SSH public key, and permitted SSH CIDRs for your own AWS account before running. The existing backend bucket name is project-specific; do not assume it exists in another account. AWS resources incur charges.
+### Deployment Prerequisites
+
+Before executing the Terraform workflows:
+
+1. Configure the Terraform remote backend, including the S3 state bucket and DynamoDB locking table used by the project.
+2. Configure the AWS IAM role and GitHub Actions OIDC trust relationship to enable keyless authentication.
+3. Configure the appropriate Terraform root modules and input variables for the infrastructure required in each target region.
+4. Configure GitHub Environments and their required reviewers for regional deployment approvals.
+
+Regional infrastructure is defined and managed through Terraform. Each region can provision a different combination of AWS resources based on its requirements; identical infrastructure across regions is not required.
+
+The GitHub Actions workflows automate Terraform initialization, validation, planning, and deployment according to their configured triggers and approval gates.
 
 ## IaC checks and drift visibility
 
