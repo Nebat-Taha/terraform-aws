@@ -50,18 +50,30 @@ Shared components → terraform/modules/
  │   └── terraform-regions-drift-detection.yml
  ├──terraform/
  │   ├──global/                 
- │   └──regions/
- │       ├──us-east-1/            
- │       ├──eu-central-1/         
- │       └──ap-southeast-2/       
- └── modules/
-      ├──ec2/
-      ├──iam_policy/
-      ├──iam_user/
-      ├──keypair/
-      ├──network/
-      ├──secretsmanager/
-      └──security_group/
+ │   ├──regions/
+ │       ├──us-east-1/
+ |           ├──backend.tf 
+ |           ├──main.tf
+ |           ├──terraform.tfvars
+ |           └──variables.tf           
+ │       ├──eu-central-1/
+ |           ├──backend.tf 
+ |           ├──main.tf
+ |           ├──terraform.tfvars
+ |           └──variables.tf         
+ │       └──ap-southeast-2/
+ |           ├──backend.tf 
+ |           ├──main.tf
+ |           ├──terraform.tfvars
+ |           └──variables.tf         
+ │   └── modules/
+          ├──ec2/
+          ├──iam_policy/
+          ├──iam_user/
+          ├──keypair/
+          ├──network/
+          ├──secretsmanager/
+          └──security_group/
 ```
 
 ## Deployment workflow
