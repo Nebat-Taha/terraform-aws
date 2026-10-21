@@ -67,13 +67,13 @@ Shared components → terraform/modules/
  |           ├──terraform.tfvars
  |           └──variables.tf         
  │   └── modules/
-          ├──ec2/
-          ├──iam_policy/
-          ├──iam_user/
-          ├──keypair/
-          ├──network/
-          ├──secretsmanager/
-          └──security_group/
+ |        ├──ec2/
+ |        ├──iam_policy/
+ |        ├──iam_user/
+ |        ├──keypair/
+ |        ├──network/
+ |        ├──secretsmanager/
+ |        └──security_group/
 ```
 
 ## Deployment workflow
