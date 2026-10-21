@@ -71,8 +71,6 @@ terraform/
 4. Run the regional or global drift-detection workflows to inspect Terraform plan output in GitHub Actions. Manual dispatch is enabled; daily cron triggers are included as comments for optional scheduling. GitHub may notify users of failed workflow runs according to their notification settings.
 5. Use separate manually triggered destroy workflows to tear down temporary infrastructure when it is no longer needed, for example after testing or before a period of inactivity to reduce costs. The user must enter the exact confirmation text `destroy` in the GitHub Actions UI; this is a confirmation input, not a second-person review approval.
 
-Global resources have their own deployment and lifecycle workflows. **Important:** The global deployment currently uploads the artifact as `tfplan-global` but attempts to download `tfplan`; this mismatch must be fixed before the global apply stage can use the saved plan.
-
 ## Running a regional configuration locally
 
 **Prerequisites:** Terraform CLI **1.12.1 or later**, AWS credentials with appropriate permissions, and a pre-existing S3 state bucket and DynamoDB locking table. GitHub Actions additionally requires an AWS OIDC trust relationship and the `AWS_ROLE_ARN` repository secret. The Terraform AWS provider is constrained to `~> 5.0`.
