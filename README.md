@@ -8,23 +8,29 @@ The focus is on **repeatable infrastructure, regional isolation, reusable compon
 
 ## Architecture
 
-```text
-GitHub Actions (OIDC → AWS IAM role)
-       │
-       |
-       ├──Modules (Reusable)
-       |
-       ├── Global Terraform root (us-east-1 provider)
-       │     ├── IAM users, policies and access keys
-       │     └── AWS Secrets Manager example
-       │
-       └── Regional Terraform roots (GitHub Actions matrix)
-             ├── us-east-1       → VPC, subnets, routes, SG, key pair, EC2
-             ├── eu-central-1    → VPC, subnets, routes, SG, key pair
-             └── ap-southeast-2  → VPC, subnets, routes, SG, key pair
+```
+                    GitHub Actions Automation
+                     (OIDC → AWS IAM Role)
+                                │
+                  ┌─────────────┴─────────────┐
+                  │                           │
+           Global Workflow             Regional Workflow
+                  │                    (Matrix Strategy)
+                  │                           │
+           Global Terraform            Regional Terraform
+           terraform/global            terraform/regions/
+                  │                           │
+                  └─────────────┬─────────────┘
+                                │
+                         References
+                                │
+                   Reusable Terraform Modules
+                       terraform/modules/
 
-Each Terraform root maintains an independent remote state in S3, with DynamoDB-based state locking.
-Shared components → terraform/modules/
+          Each Terraform root maintains independent
+          S3 state keys with DynamoDB-backed locking.
+
+             Plan → Saved Artifact → Gated Apply
 ```
 
 ## Engineering decisions
