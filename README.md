@@ -29,14 +29,15 @@ Shared components → terraform/modules/
 
 | Decision | Implementation and rationale |
 | --- | --- |
-| **Reusable modules** | Network, security group, key pair, EC2, IAM user, IAM policy, and Secrets Manager resources are encapsulated under `terraform/modules/` and referenced using relative module paths. This avoids duplicating resource definitions across regional roots. |
-| **Regional isolation** | Each region has its own provider configuration, variables, backend state key, and Terraform root. Regional plans can be evaluated independently. |
+| **Reusable modules** | Infrastructure resources are defined in reusable modules under terraform/modules/ and referenced through relative paths from regional Terraform configurations. This eliminates repetitive resource definitions and promotes consistency across deployments. By maintaining common configurations in centralized modules, resources can share standardized settings and security controls across regions, reducing configuration inconsistencies, and potential security gaps while allowing region-specific customization where required. |
+|**Separate Global and Regional Infrastructure** | Terraform configurations are organized according to AWS resource scope. Account-level resources, such as IAM users, roles, and policies, are managed through a centralized global configuration, while regional resources, such as VPCs and EC2 instances, are provisioned independently in their respective AWS regions. This separation aligns with AWS resource boundaries,and enables independent management of global and regional infrastructure.|
+| **Regional isolation** | Each region has its own provider configuration, variables, backend state with dynamo db, and Terraform root. This keeps regional changes and state operations separated. |
 | **Distinct address spaces** | Region-specific VPC/subnet CIDRs are configured in each regional `terraform.tfvars`, avoiding overlapping networks in the current design. |
-| **Centralized remote state** | Terraform backends use an S3 bucket in `us-east-1`, encrypted state objects, distinct state keys, and a DynamoDB locking table. The bucket and table must exist before initialization. |
-| **Keyless CI/CD authentication:** | GitHub Actions uses OpenID Connect (OIDC) to assume an AWS IAM role, eliminating the need to store long-lived AWS access keys. Terraform provisions and manages infrastructure through AWS APIs using IAM permissions. Instance-level access mechanisms are configured independently according to workload requirements.|
+| **Keyless CI/CD authentication:** | GitHub Actions uses OpenID Connect (OIDC) to assume an AWS IAM role, eliminating the need to store long-lived AWS access keys. Terraform provisions and manages infrastructure through AWS APIs using IAM permissions.|
 | **Controlled deployment** | Separate plan and apply jobs save and download plan artifacts. Apply jobs reference GitHub Environments (`test-global` and `test-<region>`) that can enforce reviewer approval when configured in repository settings. |
 | **Regional planning and approvals** | A matrix generates plans for all three regions; `fail-fast: false` allows other plan jobs to finish if one fails. The apply stage depends on the complete plan matrix, and each regional apply job uses its own GitHub Environment approval gate, supporting region-specific reviewers and approval history when protection rules are configured. |
 | **Configurable workflow triggers** | Deployment workflows currently support manual dispatch and include commented push-to-`main` triggers for optional automation. Destroy workflows are manually triggered and require the exact confirmation text `destroy`; drift workflows support manual checks and have commented scheduled triggers. |
+| **Reusable execution workflows**| GitHub Actions automates initialization, checks, planning, applying, drift checks, and controlled teardown.|
 | **Terraform drift**| checks run through GitHub Actions, with support for manual execution and optional scheduling. Detected changes are reported in the workflow logs and intentionally marked as workflow failures to leverage GitHub's native failure notifications.|
 
 ## Repository structure
@@ -106,8 +107,20 @@ Deployment workflows include formatting, validation, and TFLint checks. tfsec an
 
 The drift workflows run Terraform plans and show their output directly in GitHub Actions. Their scheduled triggers are currently commented out to avoid unnecessary recurring runs in this demonstration. No separate alerting service is part of this project; GitHub's own workflow notifications depend on individual user settings.
 
-**Current drift-reporting detail:** The workflow uses `terraform plan -detailed-exitcode` with `continue-on-error: true`, but later steps test `steps.plan_drift.outputs.exitcode`, which the plan step does not set. The reporting conditions therefore do not reliably distinguish exit codes 0, 1, and 2. Capture the exit code explicitly if separate *drift detected*, *no change*, and *plan error* messages are desired. The Terraform plan output remains available in the workflow log.
 
+## Drift detection
+Dedicated global and regional workflows run Terraform plans with -detailed-exitcode to compare the configured infrastructure against the resources Terraform manages. The regional workflow uses a matrix to check the configured regions. Plan output is available in the GitHub Actions run logs.
+
+The intended reporting distinguishes:
+Terraform exit code	Meaning
+0	No changes detected
+1	Terraform plan encountered an error
+2	Changes detected
+
+
+Detected changes can intentionally be surfaced as failed GitHub Actions runs so the result is visible through the Actions interface and eligible for GitHub's native workflow-failure notifications, according to each user's notification settings.
+
+Drift checks are manually dispatchable. Optional scheduled triggers are included as commented configuration and can be enabled when recurring checks are desired. These checks concern Terraform-managed resources; unrelated resources created outside Terraform and not imported into its state are not part of the comparison.
 
 ## Related architecture studies
 
