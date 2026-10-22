@@ -92,7 +92,7 @@ The focus is on **repeatable infrastructure, regional isolation, reusable compon
 
 ```
 
-## Deployment workflow
+## GitHub Actions Workflows
 
 1. Start **Multi-Region Terraform Deployment** manually in GitHub Actions, or enable its commented push-to-`main` trigger for automated runs.
 2. For each configured region, the plan job initializes Terraform, checks formatting, validates the configuration, runs TFLint, and saves a binary `tfplan` artifact.
@@ -115,7 +115,7 @@ The GitHub Actions workflows automate Terraform initialization, validation, plan
 
 ## Infrastructure Validation and Security Scanning
 
-Deployment workflows include formatting, validation, and TFLint checks. tfsec and Checkov steps have been tested and are present as commented steps in the attached snapshot; enable them to run security checks in CI. For enforcement, retain each scanner's normal failure behavior. Where supported, optional soft-fail settings allow findings to be reported without blocking the workflow; the exact setting and effect depend on the tool or GitHub Action version. The regional Checkov example includes a commented `soft_fail: true` option, which should remain disabled when blocking findings is intended.
+Deployment workflows include formatting, validation, and TFLint checks. tfsec and Checkov steps have been tested and are present as commented steps; enable them to run security checks in CI. For enforcement, retain each scanner's normal failure behavior. Where supported, optional soft-fail settings allow findings to be reported without blocking the workflow; the exact setting and effect depend on the tool or GitHub Action version. The regional Checkov example includes a commented `soft_fail: true` option, which should remain disabled when blocking findings is intended.
 
 The drift workflows run Terraform plans and show their output directly in GitHub Actions. Their scheduled triggers are currently commented out to avoid unnecessary recurring runs in this demonstration. No separate alerting service is part of this project; GitHub's own workflow notifications depend on individual user settings.
 
