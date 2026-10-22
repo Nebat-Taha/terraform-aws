@@ -9,6 +9,10 @@ The focus is on **repeatable infrastructure, regional isolation, reusable compon
 ```text
 GitHub Actions (OIDC → AWS IAM role)
        │
+       ├──workflows
+       |
+       ├──Modules (Reusable)
+       |
        ├── Global Terraform root (us-east-1 provider)
        │     ├── IAM users, policies and access keys
        │     └── AWS Secrets Manager example
