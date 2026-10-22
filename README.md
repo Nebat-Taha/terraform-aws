@@ -9,7 +9,6 @@ The focus is on **repeatable infrastructure, regional isolation, reusable compon
 ```text
 GitHub Actions (OIDC → AWS IAM role)
        │
-       ├──workflows
        |
        ├──Modules (Reusable)
        |
