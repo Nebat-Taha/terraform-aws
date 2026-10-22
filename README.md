@@ -4,6 +4,8 @@ Infrastructure-as-code project for provisioning and managing AWS resources acros
 
 The focus is on **repeatable infrastructure, regional isolation, reusable components, security checks, and controlled changes** rather than deploying a complete multi-region application or automated failover solution.
 
+**[View Project Portfolio](https://nebat-taha.github.io/project-terraform.html)**
+
 ## Architecture
 
 ```text
@@ -21,7 +23,7 @@ GitHub Actions (OIDC → AWS IAM role)
              ├── eu-central-1    → VPC, subnets, routes, SG, key pair
              └── ap-southeast-2  → VPC, subnets, routes, SG, key pair
 
-Each root → separate S3 Terraform state object + DynamoDB locking table
+Each Terraform root maintains an independent remote state in S3, with DynamoDB-based state locking.
 Shared components → terraform/modules/
 ```
 
@@ -29,13 +31,12 @@ Shared components → terraform/modules/
 
 | Decision | Implementation and rationale |
 | --- | --- |
-| **Reusable modules** | Infrastructure resources are defined in reusable modules under terraform/modules/ and referenced through relative paths from regional Terraform configurations. This eliminates repetitive resource definitions and promotes consistency across deployments. By maintaining common configurations in centralized modules, resources can share standardized settings and security controls across regions, reducing configuration inconsistencies, and potential security gaps while allowing region-specific customization where required. |
-|**Separate Global and Regional Infrastructure** | Terraform configurations are organized according to AWS resource scope. Account-level resources, such as IAM users, roles, and policies, are managed through a centralized global configuration, while regional resources, such as VPCs and EC2 instances, are provisioned independently in their respective AWS regions. This separation aligns with AWS resource boundaries,and enables independent management of global and regional infrastructure.|
-| **Regional isolation** | Each region has its own provider configuration, variables, backend state with dynamo db, and Terraform root. This keeps regional changes and state operations separated. |
+| **Reusable modules** |Infrastructure resources are defined once in reusable modules under terraform/modules/ and referenced through relative paths. This reduces configuration duplication and establishes consistent resource configurations and security controls across regions, while allowing region-specific customization through module inputs. |
+|**Separate Global and Regional Infrastructure** | Terraform configurations are organized according to AWS resource scope. Account-global resources, such as IAM users, roles, and policies, are managed centrally, while regional resources, such as VPCs and EC2 instances, are provisioned independently. This separation aligns with AWS resource boundaries and supports independent deployment and state management.|
+| **Regional isolation** | Each region maintains its own Terraform root configuration, provider settings, input variables, and remote state. This isolates regional infrastructure changes and allows resources to be managed independently without affecting the Terraform state of other regions. |
 | **Distinct address spaces** | Region-specific VPC/subnet CIDRs are configured in each regional `terraform.tfvars`, avoiding overlapping networks in the current design. |
 | **Keyless CI/CD authentication:** | GitHub Actions uses OpenID Connect (OIDC) to assume an AWS IAM role, eliminating the need to store long-lived AWS access keys. Terraform provisions and manages infrastructure through AWS APIs using IAM permissions.|
-| **Controlled deployment** | Separate plan and apply jobs save and download plan artifacts. Apply jobs reference GitHub Environments (`test-global` and `test-<region>`) that can enforce reviewer approval when configured in repository settings. |
-| **Regional planning and approvals** | A matrix generates plans for all three regions; `fail-fast: false` allows other plan jobs to finish if one fails. The apply stage depends on the complete plan matrix, and each regional apply job uses its own GitHub Environment approval gate, supporting region-specific reviewers and approval history when protection rules are configured. |
+| **Matrix-based planning and regional approval gates** | GitHub Actions generates Terraform plans for all configured regions using a matrix strategy. Apply jobs depend on successful completion of the planning stage and use region-specific GitHub Environments for approval. This supports controlled deployments, region-specific authorization, and traceability of deployment approvals. |
 | **Configurable workflow triggers** | Deployment workflows currently support manual dispatch and include commented push-to-`main` triggers for optional automation. Destroy workflows are manually triggered and require the exact confirmation text `destroy`; drift workflows support manual checks and have commented scheduled triggers. |
 | **Reusable execution workflows**| GitHub Actions automates initialization, checks, planning, applying, drift checks, and controlled teardown.|
 | **Terraform drift**| checks run through GitHub Actions, with support for manual execution and optional scheduling. Detected changes are reported in the workflow logs and intentionally marked as workflow failures to leverage GitHub's native failure notifications.|
@@ -53,8 +54,20 @@ Shared components → terraform/modules/
  │   ├──terraform-regions-destroy.yml
  │   └── terraform-regions-drift-detection.yml
  ├──terraform/
- │   ├──global/                 
- │   ├──regions/
+ │   ├──modules/
+ |        ├──ec2/
+ |        ├──iam_policy/
+ |        ├──iam_user/
+ |        ├──keypair/
+ |        ├──network/
+ |        ├──secretsmanager/
+ |        └──security_group/
+ │   ├──global/
+ |        ├──backend.tf 
+ |        ├──main.tf
+ |        ├──terraform.tfvars
+ |        └──variables.tf            
+ │   └── regions/
  │       ├──us-east-1/
  |           ├──backend.tf 
  |           ├──main.tf
@@ -70,14 +83,7 @@ Shared components → terraform/modules/
  |           ├──main.tf
  |           ├──terraform.tfvars
  |           └──variables.tf         
- │   └── modules/
- |        ├──ec2/
- |        ├──iam_policy/
- |        ├──iam_user/
- |        ├──keypair/
- |        ├──network/
- |        ├──secretsmanager/
- |        └──security_group/
+
 ```
 
 ## Deployment workflow
@@ -101,7 +107,7 @@ Regional infrastructure is defined and managed through Terraform. Each region ca
 
 The GitHub Actions workflows automate Terraform initialization, validation, planning, and deployment according to their configured triggers and approval gates.
 
-## IaC checks and drift visibility
+## Infrastructure Validation and Security Scanning
 
 Deployment workflows include formatting, validation, and TFLint checks. tfsec and Checkov steps have been tested and are present as commented steps in the attached snapshot; enable them to run security checks in CI. For enforcement, retain each scanner's normal failure behavior. Where supported, optional soft-fail settings allow findings to be reported without blocking the workflow; the exact setting and effect depend on the tool or GitHub Action version. The regional Checkov example includes a commented `soft_fail: true` option, which should remain disabled when blocking findings is intended.
 
@@ -112,22 +118,23 @@ The drift workflows run Terraform plans and show their output directly in GitHub
 Dedicated global and regional workflows run Terraform plans with -detailed-exitcode to compare the configured infrastructure against the resources Terraform manages. The regional workflow uses a matrix to check the configured regions. Plan output is available in the GitHub Actions run logs.
 
 The intended reporting distinguishes:
-Terraform exit code	Meaning
-0	No changes detected
-1	Terraform plan encountered an error
-2	Changes detected
+| Terraform exit code | Meaning |
+| --- | --- |	
+| 0 |	No changes detected |
+| 1 |	Terraform plan encountered an error |
+| 2 |	Changes detected |
 
 
 Detected changes can intentionally be surfaced as failed GitHub Actions runs so the result is visible through the Actions interface and eligible for GitHub's native workflow-failure notifications, according to each user's notification settings.
 
 Drift checks are manually dispatchable. Optional scheduled triggers are included as commented configuration and can be enabled when recurring checks are desired. These checks concern Terraform-managed resources; unrelated resources created outside Terraform and not imported into its state are not part of the comparison.
 
-## Related architecture studies
 
-Broader application, data, and resilience trade-offs are documented separately to keep this README focused on the Terraform implementation:
+---
 
-- [Global Architecture Evolution](https://nebat-taha.github.io/arch-global-evolution.html)
-- [Disaster Recovery Strategy](https://nebat-taha.github.io/arch-disaster-recovery.html)
-- [Terraform project portfolio overview](https://nebat-taha.github.io/project-terraform.html)
+## Author
 
-These pages provide architectural context, not a claim that their proposed components are deployed by this repository.
+**Nebat Nurhussen Taha**
+
+[Portfolio](https://nebat-taha.github.io/) | [GitHub](https://github.com/Nebat-Taha)
+
